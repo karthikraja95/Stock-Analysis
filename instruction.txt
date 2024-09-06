@@ -1,0 +1,27 @@
+Create a Fully responsive website stock anaysis website using modern technologies and best practices.
+Allows user input stock ticker and recieves analysis of the stock data.
+
+Install all the dependencies needed for the project and build the project. Don't ask me to install any dependencies.
+
+Features:
+- User Input: Allow users to input a stock ticker symbol and receive an analysis of the stock data.
+- Responsive Design: Ensure the website is fully responsive, adapting to different screen sizes and devices.
+- Modern Technologies: Utilize modern web technologies and best practices.
+- Stock Data Analysis: Provide a detailed analysis of the stock data, including price history, volume, and other relevant metrics.
+- User-Friendly Interface: Offer an intuitive and user-friendly interface for easy navigation and data interpretation.
+- Read news about the company and generate a summary of the news.
+- Analysis the financial statements of the company and generate a summary of the financial statements.
+- Generate a summary of the key metrics of the company.
+- Generate a summary of the key ratios of the company.
+- Generate a summary of the key financial ratios of the company.
+- Buy or sell recommendation based on the analysis.
+- Price target for the stock.
+- Upside and downside based on the analysis.
+ 
+
+Requirements:
+- Build using npx create-next-app@latest
+- modify the basic template to build the website.
+
+- User Input: Allow users to input a stock ticker symbol and receive an analysis of the stock data.
+

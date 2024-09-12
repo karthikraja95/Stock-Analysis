@@ -121,7 +121,7 @@ export default function StockData({ ticker }: StockDataProps) {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <motion.div 
+    <motion.div
       className="bg-gray-50 p-4 rounded-xl shadow-md h-full flex flex-col"
       whileHover={{ scale: 1.02 }}
       transition={{ duration: 0.2 }}

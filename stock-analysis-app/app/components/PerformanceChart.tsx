@@ -163,12 +163,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({ historicalData }) =
   }
 
   return (
-    <motion.div 
-      className="card"
-      whileHover={{ scale: 1.02 }}
-      transition={{ duration: 0.2 }}
-    >
-      <h3 className="text-xl font-semibold mb-4">Performance</h3>
+    <div>
       <div className="flex justify-between mb-4">
         {timeRanges.map(range => (
           <button
@@ -187,7 +182,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({ historicalData }) =
       <div className="h-[300px] w-full">
         <Line data={chartData} options={options} />
       </div>
-    </motion.div>
+    </div>
   );
 };
 

@@ -149,16 +149,9 @@ const StockGraphs: React.FC<StockGraphsProps> = ({ historicalData }) => {
   }
 
   return (
-    <motion.div 
-      className="card"
-      whileHover={{ scale: 1.02 }}
-      transition={{ duration: 0.2 }}
-    >
-      <h3 className="text-xl font-semibold mb-4">Stock Price and Volume History</h3>
-      <div className="h-[400px] w-full">
-        <Line data={chartData} options={options} />
-      </div>
-    </motion.div>
+    <div className="h-[400px] w-full">
+      <Line data={chartData} options={options} />
+    </div>
   );
 };
 

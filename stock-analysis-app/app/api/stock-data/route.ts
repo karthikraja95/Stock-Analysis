@@ -213,7 +213,6 @@ async function fetchHistoricalData(ticker: string) {
     const result = await yahooFinance.chart(query, queryOptions, moduleOptions);
 
     if (!result || !result.quotes || result.quotes.length === 0) {
-      console.log('No historical data found for ticker:', ticker);
       return [];
     }
 
@@ -222,8 +221,6 @@ async function fetchHistoricalData(ticker: string) {
       close: item.close,
       volume: item.volume
     }));
-
-    console.log('Fetched historical data:', historicalData);
 
     return historicalData;
   } catch (error) {

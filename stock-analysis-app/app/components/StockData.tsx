@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Line } from 'react-chartjs-2'
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js'
 import { motion } from 'framer-motion'
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
+import Link from 'next/link'
+import StockGraphs from './StockGraphs'
+import PerformanceChart from './PerformanceChart'
 
 interface StockDataProps {
   ticker: string
@@ -15,6 +14,7 @@ export default function StockData({ ticker }: StockDataProps) {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState('analysis')
 
   useEffect(() => {
     const fetchStockData = async () => {
@@ -56,230 +56,160 @@ export default function StockData({ ticker }: StockDataProps) {
       transition={{ duration: 0.5 }}
     >
       <h2 className="text-3xl font-bold mb-6 text-center">{ticker} Analysis</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {hasStockData ? (
-          <>
-            <StockQuote data={data.stockData} />
-            <HistoricalPriceChart data={data.historicalData} />
-          </>
-        ) : (
-          <ErrorCard message="Failed to fetch stock data" />
-        )}
-        {hasFinancialData ? (
-          <>
-            <FinancialOverview data={data.financialData} />
-            <AnalysisResult analysis={data.analysis} />
-            <FinancialRatios data={data.financialData} />
-            <GrowthMetrics data={data.financialData} />
-          </>
-        ) : (
-          <ErrorCard message="Failed to fetch financial data" />
-        )}
-        <NewsSection news={data.newsData} />
-      </div>
+      <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
+      {activeTab === 'analysis' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
+            {hasStockData ? (
+              <Card title="Stock Quote">
+                <StockQuote data={data.stockData} />
+              </Card>
+            ) : (
+              <ErrorCard message="Failed to fetch stock data" />
+            )}
+            {hasFinancialData && (
+              <>
+                <Card title="Growth & Cash Flow">
+                  <GrowthMetrics data={data.financialData} />
+                </Card>
+                <Card title="Analysis">
+                  <AnalysisResult analysis={data.analysis} />
+                </Card>
+              </>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-6">
+            {hasFinancialData ? (
+              <>
+                <Card title="Financial Overview">
+                  <FinancialOverview data={data.financialData} />
+                </Card>
+                <Card title="Financial Ratios">
+                  <FinancialRatios data={data.financialData} />
+                </Card>
+                <Card title="Performance">
+                  <PerformanceChart historicalData={data.historicalData} />
+                </Card>
+              </>
+            ) : (
+              <ErrorCard message="Failed to fetch financial data" />
+            )}
+          </div>
+          {data.historicalData && data.historicalData.length > 0 ? (
+            <div className="col-span-full">
+              <Card title="Stock Price and Volume History">
+                <StockGraphs historicalData={data.historicalData} />
+              </Card>
+            </div>
+          ) : (
+            <p className="col-span-full text-center text-gray-500">No historical data available for graph</p>
+          )}
+          <div className="col-span-full">
+            <Card title="Recent News">
+              <NewsSection news={data.newsData} />
+            </Card>
+          </div>
+        </div>
+      ) : (
+        <Link href="/portfolio" className="text-blue-500 hover:underline">
+          Go to Portfolio
+        </Link>
+      )}
     </motion.div>
+  )
+}
+
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <motion.div 
+      className="bg-gray-50 p-4 rounded-xl shadow-md h-full flex flex-col"
+      whileHover={{ scale: 1.02 }}
+      transition={{ duration: 0.2 }}
+    >
+      <h3 className="text-xl font-semibold mb-4">{title}</h3>
+      <div className="flex-grow">{children}</div>
+    </motion.div>
+  )
+}
+
+function Tabs({ activeTab, setActiveTab }: { activeTab: string; setActiveTab: (tab: string) => void }) {
+  return (
+    <div className="flex mb-6">
+      <button
+        className={`mr-4 pb-2 ${activeTab === 'analysis' ? 'border-b-2 border-blue-500' : ''}`}
+        onClick={() => setActiveTab('analysis')}
+      >
+        Analysis
+      </button>
+      <button
+        className={`pb-2 ${activeTab === 'portfolio' ? 'border-b-2 border-blue-500' : ''}`}
+        onClick={() => setActiveTab('portfolio')}
+      >
+        Portfolio
+      </button>
+    </div>
   )
 }
 
 function ErrorCard({ message }: { message: string }) {
   return (
-    <motion.div className="card" whileHover={{ scale: 1.05 }}>
+    <div className="card">
       <h3 className="text-xl font-semibold mb-4">Error</h3>
       <p className="text-red-500">{message}</p>
-    </motion.div>
-  )
-}
-
-function HistoricalPriceChart({ data }: { data: any[] }) {
-  const [timeRange, setTimeRange] = useState('1M');
-
-  const timeRanges = {
-    '1D': 1,
-    '1W': 7,
-    '1M': 30,
-    '3M': 90,
-    '6M': 180,
-    '1Y': 365
-  };
-
-  const filteredData = data.slice(-timeRanges[timeRange]);
-
-  const chartData = {
-    labels: filteredData.map(item => new Date(item.date).toLocaleDateString()),
-    datasets: [
-      {
-        label: 'Close Price',
-        data: filteredData.map(item => item.close),
-        borderColor: 'rgb(75, 192, 192)',
-        tension: 0.1
-      }
-    ]
-  };
-
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-      title: {
-        display: true,
-        text: 'Historical Price Chart',
-      },
-    },
-  };
-
-  return (
-    <motion.div className="card" whileHover={{ scale: 1.05 }}>
-      <div className="mb-4">
-        {Object.keys(timeRanges).map(range => (
-          <button
-            key={range}
-            className={`mr-2 px-2 py-1 rounded ${timeRange === range ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-            onClick={() => setTimeRange(range)}
-          >
-            {range}
-          </button>
-        ))}
-      </div>
-      <Line options={options} data={chartData} />
-    </motion.div>
-  );
-}
-
-function PriceChart({ data }: { data: any }) {
-  const chartData = {
-    labels: ['Previous Close', 'Open', 'Low', 'High', 'Current'],
-    datasets: [
-      {
-        label: 'Price',
-        data: [
-          parseFloat(data.previousClose),
-          parseFloat(data.open),
-          parseFloat(data.low),
-          parseFloat(data.high),
-          parseFloat(data.price)
-        ],
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-        borderWidth: 1,
-        pointRadius: 5,
-        pointHoverRadius: 8,
-      },
-    ],
-  }
-
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      title: {
-        display: true,
-        text: 'Price Overview',
-        font: {
-          size: 16,
-        },
-      },
-      tooltip: {
-        callbacks: {
-          label: function(context: any) {
-            return `$${context.parsed.y.toFixed(2)}`;
-          }
-        }
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: false,
-        title: {
-          display: true,
-          text: 'Price ($)',
-        },
-        ticks: {
-          callback: function(value: any) {
-            return '$' + value.toFixed(2);
-          }
-        }
-      },
-      x: {
-        title: {
-          display: true,
-          text: 'Data Points',
-        }
-      }
-    },
-  }
-
-  return (
-    <motion.div className="card" whileHover={{ scale: 1.05 }}>
-      <Line data={chartData} options={options} />
-    </motion.div>
+    </div>
   )
 }
 
 function StockQuote({ data }: { data: any }) {
   return (
-    <motion.div className="card" whileHover={{ scale: 1.05 }}>
-      <h3 className="text-xl font-semibold mb-4">Stock Quote</h3>
+    <div>
       <p className="text-2xl font-bold mb-2">${data.price}</p>
       <p className={`text-lg ${parseFloat(data.change) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-      {`$${data.change}`} ({data.changePercent}%)
+        {`$${data.change}`} ({data.changePercent}%)
       </p>
       <p className="text-gray-600">Volume: {parseInt(data.volume).toLocaleString()}</p>
-    </motion.div>
+    </div>
   )
 }
 
 function FinancialOverview({ data }: { data: any }) {
   return (
-    <motion.div className="card" whileHover={{ scale: 1.05 }}>
-      <h3 className="text-xl font-semibold mb-4">Financial Overview</h3>
-      <div className="grid grid-cols-2 gap-2">
-        <MetricItem label="Market Cap" value={data.MarketCapitalization} />
-        <MetricItem label="P/E Ratio" value={data.PERatio} />
-        <MetricItem label="EPS" value={`$${data.EPS}`} />
-        <MetricItem label="Dividend Yield" value={data.DividendYield} />
-        <MetricItem label="52 Week High" value={`$${data['52WeekHigh']}`} />
-        <MetricItem label="52 Week Low" value={`$${data['52WeekLow']}`} />
-        <MetricItem label="Beta" value={data.Beta} />
-        <MetricItem label="Debt/Equity" value={data.DebtToEquityRatio} />
-      </div>
-    </motion.div>
+    <div className="grid grid-cols-2 gap-2">
+      <MetricItem label="Market Cap" value={data.MarketCapitalization} />
+      <MetricItem label="P/E Ratio" value={data.PERatio} />
+      <MetricItem label="EPS" value={`$${data.EPS}`} />
+      <MetricItem label="Dividend Yield" value={data.DividendYield} />
+      <MetricItem label="52 Week High" value={`$${data['52WeekHigh']}`} />
+      <MetricItem label="52 Week Low" value={`$${data['52WeekLow']}`} />
+      <MetricItem label="Beta" value={data.Beta} />
+      <MetricItem label="EBITDA" value={data.EBITDA} />
+    </div>
   )
 }
 
 function FinancialRatios({ data }: { data: any }) {
   return (
-    <motion.div className="card" whileHover={{ scale: 1.05 }}>
-      <h3 className="text-xl font-semibold mb-4">Financial Ratios</h3>
-      <div className="grid grid-cols-2 gap-2">
-        <MetricItem label="P/B Ratio" value={data.PriceToBookRatio} />
-        <MetricItem label="P/S Ratio" value={data.PriceToSalesRatioTTM} />
-        <MetricItem label="Debt/Equity" value={data.DebtToEquityRatio} />
-        <MetricItem label="PEG Ratio" value={data.PEGRatio} />
-        <MetricItem label="ROE" value={`${(parseFloat(data.ReturnOnEquityTTM) * 100).toFixed(2)}%`} />
-        <MetricItem label="Operating Margin" value={`${(parseFloat(data.OperatingMarginTTM) * 100).toFixed(2)}%`} />
-      </div>
-    </motion.div>
+    <div className="grid grid-cols-2 gap-2">
+      <MetricItem label="P/B Ratio" value={data.PriceToBookRatio} />
+      <MetricItem label="P/S Ratio" value={data.PriceToSalesRatioTTM} />
+      <MetricItem label="Debt/Equity" value={data.DebtToEquityRatio} />
+      <MetricItem label="PEG Ratio" value={data.PEGRatio} />
+      <MetricItem label="ROE" value={`${(parseFloat(data.ReturnOnEquityTTM) * 100).toFixed(2)}%`} />
+      <MetricItem label="Operating Margin" value={`${(parseFloat(data.OperatingMarginTTM) * 100).toFixed(2)}%`} />
+    </div>
   )
 }
 
 function GrowthMetrics({ data }: { data: any }) {
   return (
-    <motion.div className="card" whileHover={{ scale: 1.05 }}>
-      <h3 className="text-xl font-semibold mb-4">Growth & Cash Flow</h3>
-      <div className="grid grid-cols-2 gap-2">
-        <MetricItem label="Earnings Growth" value={data.EarningsGrowth} />
-        <MetricItem label="Revenue Growth" value={data.RevenueGrowth} />
-        <MetricItem label="Free Cash Flow" value={data.FreeCashFlow} />
-        <MetricItem label="Dividend Payout" value={data.DividendPayout} />
-      </div>
-    </motion.div>
+    <div className="grid grid-cols-2 gap-4">
+      <MetricItem label="Earnings Growth" value={data.EarningsGrowth} />
+      <MetricItem label="Revenue Growth" value={data.RevenueGrowth} />
+      <MetricItem label="Free Cash Flow" value={data.FreeCashFlow} />
+      <MetricItem label="Dividend Payout" value={data.DividendPayout} />
+    </div>
   )
 }
-
 
 function MetricItem({ label, value }: { label: string; value: string | number }) {
   return (
@@ -290,57 +220,37 @@ function MetricItem({ label, value }: { label: string; value: string | number })
   )
 }
 
-function formatPercentage(value: string | number | undefined): string {
-  if (value === undefined || isNaN(Number(value))) {
-    return 'N/A';
-  }
-  return `${(Number(value) * 100).toFixed(2)}%`;
-}
-
-function formatCurrency(value: string | number | undefined): string {
-  if (value === undefined || isNaN(Number(value))) {
-    return 'N/A';
-  }
-  return `$${Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-}
-
 function AnalysisResult({ analysis }: { analysis: any }) {
   return (
-    <motion.div className="card" whileHover={{ scale: 1.05 }}>
-      <h3 className="text-xl font-semibold mb-4">Analysis</h3>
-      <div className="grid grid-cols-2 gap-2">
+    <div className="flex flex-col h-full">
+      <div className="grid grid-cols-2 gap-2 mb-4">
         <MetricItem label="Recommendation" value={analysis.recommendation} />
         <MetricItem label="Price Target" value={`$${analysis.priceTarget}`} />
         <MetricItem label="Potential Upside" value={analysis.upside} />
         <MetricItem label="Risk Level" value={analysis.riskLevel} />
       </div>
-      <p className="mt-4 text-sm text-gray-600">{analysis.summary}</p>
-    </motion.div>
+      <div className="mt-auto">
+        <h4 className="text-lg font-semibold mb-2">Summary</h4>
+        <p className="text-sm text-gray-600 leading-relaxed">{analysis.summary}</p>
+      </div>
+    </div>
   )
 }
 
 function NewsSection({ news }: { news: any[] }) {
   if (!news || news.length === 0) {
-    return (
-      <motion.div className="card col-span-full" whileHover={{ scale: 1.02 }}>
-        <h3 className="text-xl font-semibold mb-4">Recent News</h3>
-        <p>No recent news available.</p>
-      </motion.div>
-    )
+    return <p>No recent news available.</p>
   }
 
   return (
-    <motion.div className="card col-span-full" whileHover={{ scale: 1.02 }}>
-      <h3 className="text-xl font-semibold mb-4">Recent News</h3>
-      <ul className="space-y-2">
-        {news.map((article, index) => (
-          <li key={index}>
-            <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-              {article.title}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </motion.div>
+    <ul className="space-y-2">
+      {news.map((article, index) => (
+        <li key={index}>
+          <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+            {article.title}
+          </a>
+        </li>
+      ))}
+    </ul>
   )
 }

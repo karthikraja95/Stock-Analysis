@@ -198,22 +198,40 @@ async function fetchFinancialData(ticker: string) {
 async function fetchHistoricalData(ticker: string) {
   try {
     const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - 365 * 24 * 60 * 60 * 1000); // 1 year ago
+    const startDate = new Date(endDate.getTime() - 180 * 24 * 60 * 60 * 1000); // 6 months ago
 
-    const historicalData = await yahooFinance.historical(ticker, {
-      period1: startDate,
-      period2: endDate,
+    const query = ticker;
+    const queryOptions = {
+      period1: startDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+      period2: endDate.toISOString().split('T')[0],
       interval: '1d'
-    });
+    };
+    const moduleOptions = {
+      return: 'array' // Ensure we get an array of results
+    };
+
+    const result = await yahooFinance.chart(query, queryOptions, moduleOptions);
+
+    if (!result || !result.quotes || result.quotes.length === 0) {
+      console.log('No historical data found for ticker:', ticker);
+      return [];
+    }
+
+    const historicalData = result.quotes.map(item => ({
+      date: item.date.toISOString().split('T')[0], // Format date as YYYY-MM-DD
+      close: item.close,
+      volume: item.volume
+    }));
+
+    console.log('Fetched historical data:', historicalData);
 
     return historicalData;
   } catch (error) {
-    console.error('Error fetching financial data:', error);
-    return {
-      error: `Failed to fetch financial data for ${ticker}`
-    };
+    console.error('Error fetching historical data:', error);
+    return [];
   }
 }
+
 
 
 async function fetchNewsData(ticker: string) {
@@ -229,48 +247,84 @@ async function fetchNewsData(ticker: string) {
   }
 }
 
+
 function analyzeStockData(stockData: any, financialData: any) {
+  let recommendation = "";
+  let priceTarget = 0;
+  let riskLevel = "";
+  let analysis = "";
+
   const currentPrice = parseFloat(stockData.price) || 0;
-  const peRatio = parseFloat(financialData.PERatio) || 0;
-  const pbRatio = parseFloat(financialData.PriceToBookRatio) || 0;
-  const beta = parseFloat(financialData.Beta) || 1;
+  const pegRatio = parseFloat(financialData.PEGRatio) || 0;
   const roe = parseFloat(financialData.ReturnOnEquityTTM) || 0;
-  const recommendationMean = parseFloat(financialData.RecommendationMean) || 3;
+  const earningsGrowth = parseFloat(financialData.EarningsGrowth) || 0;
+  const beta = parseFloat(financialData.Beta) || 1;
+  const debtEquity = parseFloat(financialData.DebtToEquityRatio) || 0;
+  const operatingMargin = parseFloat(financialData.OperatingMarginTTM) || 0;
+  const revenueGrowth = parseFloat(financialData.RevenueGrowth) || 0;
+  const peRatio = parseFloat(financialData.PERatio) || 0;
+  const industryAvgPE = 20; // This should be dynamically fetched or calculated
+  const dividendYield = parseFloat(financialData.DividendYield) || 0;
+  const dividendPayout = parseFloat(financialData.PayoutRatio) || 0;
 
-  let recommendation = financialData.RecommendationKey || 'Hold';
-  let priceTarget = parseFloat(financialData.TargetMedianPrice) || currentPrice;
-  let upside = ((priceTarget - currentPrice) / currentPrice * 100).toFixed(2) + '%';
-  let riskLevel = 'Moderate';
-  let summary = '';
-
-  if (recommendationMean <= 2) {
-    recommendation = 'Buy';
-  } else if (recommendationMean >= 4) {
-    recommendation = 'Sell';
-  }
-
-  if (beta > 1.5) {
-    riskLevel = 'High';
-    summary += 'The stock shows high volatility compared to the market. ';
-  } else if (beta < 0.5) {
-    riskLevel = 'Low';
-    summary += 'The stock shows low volatility compared to the market. ';
-  }
-
-  if (roe > 20) {
-    summary += 'The company demonstrates strong profitability and efficient use of equity. ';
-  } else if (roe > 0 && roe < 10) {
-    summary += 'The company\'s profitability and use of equity could be improved. ';
-  }
-
-  if (peRatio > 0 && pbRatio > 0) {
-    if (peRatio < 15 && pbRatio < 1.5) {
-      summary += 'The stock appears undervalued based on PE and PB ratios. ';
-    } else if (peRatio > 30 || pbRatio > 3) {
-      summary += 'The stock seems overvalued compared to its fundamentals. ';
-    }
+  // Determine recommendation
+  if (pegRatio < 1 && roe > 15 && earningsGrowth > 10) {
+    recommendation = "Strong Buy";
+  } else if (pegRatio < 1.5 && roe > 10 && earningsGrowth > 5) {
+    recommendation = "Buy";
+  } else if (pegRatio < 2 && roe > 5) {
+    recommendation = "Hold";
   } else {
-    summary += 'Insufficient data to make a comprehensive valuation analysis. ';
+    recommendation = "Sell";
+  }
+
+  // Calculate price target and potential upside
+  priceTarget = currentPrice * (1 + (earningsGrowth / 100));
+  let upside = ((priceTarget - currentPrice) / currentPrice * 100).toFixed(2) + '%';
+
+  // Determine risk level
+  if (beta < 0.8) {
+    riskLevel = "Low";
+  } else if (beta < 1.2) {
+    riskLevel = "Moderate";
+  } else {
+    riskLevel = "High";
+  }
+
+  // Generate analysis text
+  analysis += "Financial Strength: ";
+  if (debtEquity < 50) {
+    analysis += "The company has a strong balance sheet with low debt levels. ";
+  } else {
+    analysis += "The company's debt levels are relatively high, which may impact financial flexibility. ";
+  }
+
+  analysis += "Profitability: ";
+  if (operatingMargin > 20) {
+    analysis += "Impressive operating margins indicate efficient operations. ";
+  } else {
+    analysis += "Operating margins suggest room for improvement in operational efficiency. ";
+  }
+
+  analysis += "Growth Prospects: ";
+  if (revenueGrowth > 10 && earningsGrowth > 10) {
+    analysis += "The company demonstrates strong revenue and earnings growth, indicating positive future prospects. ";
+  } else {
+    analysis += "Growth metrics suggest challenges in maintaining consistent expansion. ";
+  }
+
+  analysis += "Valuation: ";
+  if (peRatio < industryAvgPE) {
+    analysis += "The stock appears undervalued compared to industry peers. ";
+  } else {
+    analysis += "The stock's valuation seems rich relative to its fundamentals. ";
+  }
+
+  analysis += "Dividend: ";
+  if (dividendYield > 2 && dividendPayout < 60) {
+    analysis += "The company offers an attractive and sustainable dividend, appealing to income-focused investors. ";
+  } else if (dividendYield > 0) {
+    analysis += "The dividend payout appears sustainable, but may not be a primary factor for investors. ";
   }
 
   return {
@@ -278,6 +332,7 @@ function analyzeStockData(stockData: any, financialData: any) {
     priceTarget: priceTarget.toFixed(2),
     upside,
     riskLevel,
-    summary: summary.trim()
+    summary: analysis.trim()
   };
 }
+

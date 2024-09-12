@@ -276,7 +276,19 @@ function analyzeStockData(stockData: any, financialData: any) {
   }
 
   // Calculate price target and potential upside
-  priceTarget = currentPrice * (1 + (earningsGrowth / 100));
+  //priceTarget = currentPrice * (1 + (earningsGrowth / 100));
+
+  // Improved Price Target Calculation
+  let priceTargetPE = currentPrice * (1 + (earningsGrowth / 100));
+  let priceTargetPEG = currentPrice * (pegRatio < 1 ? 1.5 : 1.2);
+  let priceTargetDCF = calculateDCF(currentPrice, earningsGrowth, roe);
+
+  priceTarget = (priceTargetPE + priceTargetPEG + priceTargetDCF) / 3;
+
+  // Ensure price target is not negative or unreasonably high
+  priceTarget = Math.max(priceTarget, currentPrice * 0.5);
+  priceTarget = Math.min(priceTarget, currentPrice * 2);
+
   let upside = ((priceTarget - currentPrice) / currentPrice * 100).toFixed(2) + '%';
 
   // Determine risk level
@@ -331,5 +343,14 @@ function analyzeStockData(stockData: any, financialData: any) {
     riskLevel,
     summary: analysis.trim()
   };
+}
+
+function calculateDCF(currentPrice: number, growthRate: number, discountRate: number) {
+  const projectionYears = 5;
+  let dcf = 0;
+  for (let i = 1; i <= projectionYears; i++) {
+    dcf += currentPrice * Math.pow(1 + growthRate / 100, i) / Math.pow(1 + discountRate / 100, i);
+  }
+  return dcf;
 }
 

@@ -16,24 +16,34 @@ export default function StockData({ ticker }: StockDataProps) {
   const [data, setData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('analysis')
+  const [intradayData, setIntradayData] = useState<any[]>([])
 
   useEffect(() => {
     const fetchStockData = async () => {
       setLoading(true)
       setError(null)
       try {
-        const response = await fetch(`/api/stock-data?ticker=${ticker}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch stock data')
+        const [stockDataResponse, intradayDataResponse] = await Promise.all([
+          fetch(`/api/stock-data?ticker=${ticker}`),
+          fetch(`/api/intraday-data?ticker=${ticker}`)
+        ]);
+
+        if (!stockDataResponse.ok || !intradayDataResponse.ok) {
+          throw new Error('Failed to fetch data');
         }
-        const result = await response.json()
-        if (result.error) {
-          throw new Error(result.error)
+
+        const stockDataResult = await stockDataResponse.json();
+        const intradayDataResult = await intradayDataResponse.json();
+
+        if (stockDataResult.error) {
+          throw new Error(stockDataResult.error);
         }
-        setData(result)
+
+        setData(stockDataResult);
+        setIntradayData(intradayDataResult);
       } catch (err) {
-        console.error('Error fetching stock data:', err)
-        setError('Error fetching stock data. Please try again.')
+        console.error('Error fetching data:', err)
+        setError('Error fetching data. Please try again.')
       } finally {
         setLoading(false)
       }
@@ -89,7 +99,7 @@ export default function StockData({ ticker }: StockDataProps) {
                   <FinancialRatios data={data.financialData} />
                 </Card>
                 <Card title="Performance">
-                  <PerformanceChart historicalData={data.historicalData} />
+                  <PerformanceChart historicalData={data.historicalData} intradayData={intradayData} />
                 </Card>
               </>
             ) : (

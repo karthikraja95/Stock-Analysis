@@ -229,6 +229,41 @@ async function fetchHistoricalData(ticker: string) {
   }
 }
 
+async function fetchIntradayData(ticker: string) {
+  try {
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - 1 * 24 * 60 * 60 * 1000); // 1 day ago
+
+    const query = ticker;
+    const queryOptions = {
+      period1: Math.floor(startDate.getTime() / 1000), // UNIX timestamp in seconds
+      period2: Math.floor(endDate.getTime() / 1000),
+      interval: '5m' // 5-minute intervals (adjust as needed)
+    };
+    const moduleOptions = {
+      return: 'array' // Ensure we get an array of results
+    };
+
+    const result = await yahooFinance.chart(query, queryOptions, moduleOptions);
+
+    if (!result || !result.quotes || result.quotes.length === 0) {
+      return [];
+    }
+
+    const intradayData = result.quotes.map(item => ({
+      date: item.date.toISOString(), // Keep full ISO string for intraday data
+      close: item.close,
+      volume: item.volume
+    }));
+
+    return intradayData;
+  } catch (error) {
+    console.error('Error fetching intraday data:', error);
+    return [];
+  }
+}
+
+
 
 
 async function fetchNewsData(ticker: string) {
@@ -410,40 +445,6 @@ function analyzeStockData(stockData: any, financialData: any) {
   } else {
     riskLevel = "High";
   }
-  /*multiline comment
-  // Generate Analysis Summary
-  analysis += `**Valuation Metrics**\n`;
-  analysis += `- P/E Ratio: ${peRatio.toFixed(2)}\n`;
-  analysis += `- Forward P/E: ${forwardPE.toFixed(2)}\n`;
-  analysis += `- PEG Ratio: ${pegRatio.toFixed(2)}\n\n`;
-
-  analysis += `**Profitability Metrics**\n`;
-  analysis += `- Return on Equity (ROE): ${roe.toFixed(2)}%\n`;
-  analysis += `- Return on Assets (ROA): ${roa.toFixed(2)}%\n`;
-  analysis += `- Operating Margin: ${operatingMargin.toFixed(2)}%\n`;
-  analysis += `- Profit Margin: ${profitMargin.toFixed(2)}%\n`;
-  analysis += `- Gross Margin: ${grossMargin.toFixed(2)}%\n\n`;
-
-  analysis += `**Growth Metrics**\n`;
-  analysis += `- Earnings Growth: ${earningsGrowth.toFixed(2)}%\n`;
-  analysis += `- Revenue Growth: ${revenueGrowth.toFixed(2)}%\n\n`;
-
-  analysis += `**Financial Health Metrics**\n`;
-  analysis += `- Debt-to-Equity Ratio: ${debtEquity.toFixed(2)}\n`;
-  analysis += `- Current Ratio: ${currentRatio.toFixed(2)}\n`;
-  analysis += `- Quick Ratio: ${quickRatio.toFixed(2)}\n`;
-  analysis += `- Free Cash Flow: $${freeCashFlow.toFixed(2)}M\n\n`;
-
-  analysis += `**Dividend Metrics**\n`;
-  analysis += `- Dividend Yield: ${dividendYield.toFixed(2)}%\n`;
-  analysis += `- Payout Ratio: ${payoutRatio.toFixed(2)}%\n\n`;
-
-  analysis += `**Risk Metrics**\n`;
-  analysis += `- Beta: ${beta.toFixed(2)}\n\n`;
-
-  analysis += `**Recommendation**\n`;
-  analysis += `Based on the analysis, the stock is rated as a **${recommendation}** with a risk level of **${riskLevel}**. The price target is $${priceTarget.toFixed(2)}, implying an upside potential of ${upside}.\n`;
-*/
 
   // Generate Concise Summary
   const strengths = [];

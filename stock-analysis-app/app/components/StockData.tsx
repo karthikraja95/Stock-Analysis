@@ -1,4 +1,5 @@
 'use client'
+import ReactMarkdown from 'react-markdown';
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
@@ -194,11 +195,12 @@ function FinancialRatios({ data }: { data: any }) {
       <MetricItem label="P/S Ratio" value={data.PriceToSalesRatioTTM} />
       <MetricItem label="Debt/Equity" value={data.DebtToEquityRatio} />
       <MetricItem label="PEG Ratio" value={data.PEGRatio} />
-      <MetricItem label="ROE" value={`${(parseFloat(data.ReturnOnEquityTTM) * 100).toFixed(2)}%`} />
-      <MetricItem label="Operating Margin" value={`${(parseFloat(data.OperatingMarginTTM) * 100).toFixed(2)}%`} />
+      <MetricItem label="ROE" value={`${(parseFloat(data.ReturnOnEquityTTM)).toFixed(2)}%`} />
+      <MetricItem label="Operating Margin" value={`${(parseFloat(data.OperatingMarginTTM)).toFixed(2)}%`} />
     </div>
   )
 }
+
 
 function GrowthMetrics({ data }: { data: any }) {
   return (
@@ -231,11 +233,31 @@ function AnalysisResult({ analysis }: { analysis: any }) {
       </div>
       <div className="mt-auto">
         <h4 className="text-lg font-semibold mb-2">Summary</h4>
-        <p className="text-sm text-gray-600 leading-relaxed">{analysis.summary}</p>
+        <div className="text-sm text-gray-600 leading-relaxed">
+          <ReactMarkdown
+            components={{
+              h3: ({ node, ...props }) => (
+                <h3 className="text-base font-semibold mt-4 mb-2" {...props} />
+              ),
+              ul: ({ node, ...props }) => (
+                <ul className="list-disc list-inside ml-4" {...props} />
+              ),
+              li: ({ node, ...props }) => (
+                <li className="mb-1" {...props} />
+              ),
+              p: ({ node, ...props }) => (
+                <p className="mt-2" {...props} />
+              ),
+            }}
+          >
+            {analysis.summary}
+          </ReactMarkdown>
+        </div>
       </div>
     </div>
-  )
+  );
 }
+
 
 function NewsSection({ news }: { news: any[] }) {
   if (!news || news.length === 0) {

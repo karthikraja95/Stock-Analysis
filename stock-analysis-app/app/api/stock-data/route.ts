@@ -251,106 +251,314 @@ function analyzeStockData(stockData: any, financialData: any) {
   let riskLevel = "";
   let analysis = "";
 
-  const currentPrice = parseFloat(stockData.price) || 0;
-  const pegRatio = parseFloat(financialData.PEGRatio) || 0;
-  const roe = parseFloat(financialData.ReturnOnEquityTTM) || 0;
-  const earningsGrowth = parseFloat(financialData.EarningsGrowth) || 0;
-  const beta = parseFloat(financialData.Beta) || 1;
-  const debtEquity = parseFloat(financialData.DebtToEquityRatio) || 0;
-  const operatingMargin = parseFloat(financialData.OperatingMarginTTM) || 0;
-  const revenueGrowth = parseFloat(financialData.RevenueGrowth) || 0;
-  const peRatio = parseFloat(financialData.PERatio) || 0;
-  const industryAvgPE = 20; // This should be dynamically fetched or calculated
-  const dividendYield = parseFloat(financialData.DividendYield) || 0;
-  const dividendPayout = parseFloat(financialData.PayoutRatio) || 0;
+  // Parse numerical values from the financial data
+  const currentPrice = parseFloat(financialData.CurrentPrice) || 0;
+  const targetMeanPrice = parseFloat(financialData.TargetMeanPrice) || 0;
+  const targetHighPrice = parseFloat(financialData.TargetHighPrice) || 0;
+  const targetLowPrice = parseFloat(financialData.TargetLowPrice) || 0;
 
-  // Determine recommendation
-  if (pegRatio < 1 && roe > 15 && earningsGrowth > 10) {
+  const peRatio = parseFloat(financialData.PERatio) || 0;
+  const forwardPE = parseFloat(financialData.ForwardPE) || 0;
+  const pegRatio = parseFloat(financialData.PEGRatio) || 0;
+
+  const roe = parseFloat(financialData.ReturnOnEquityTTM) || 0;
+  const roa = parseFloat(financialData.ReturnOnAssets) || 0;
+  const operatingMargin = parseFloat(financialData.OperatingMarginTTM) || 0;
+  const profitMargin = parseFloat(financialData.ProfitMargins) || 0;
+  const grossMargin = parseFloat(financialData.GrossMargins) || 0;
+
+  const revenueGrowth = parseFloat(financialData.RevenueGrowth) || 0;
+  const earningsGrowth = parseFloat(financialData.EarningsGrowth) || 0;
+
+  const debtEquity = parseFloat(financialData.DebtToEquityRatio) || 0;
+  const currentRatio = parseFloat(financialData.CurrentRatio) || 0;
+  const quickRatio = parseFloat(financialData.QuickRatio) || 0;
+
+  const freeCashFlow = parseFloat(financialData.FreeCashFlow) || 0;
+
+  const dividendYield = parseFloat(financialData.DividendYield) || 0;
+  const payoutRatio = parseFloat(financialData.PayoutRatio) || 0;
+
+  const beta = parseFloat(financialData.Beta) || 1;
+
+  // Initialize score
+  let score = 0;
+  const maxScore = 30; // Maximum possible score
+
+  // Valuation Metrics
+  if (peRatio > 0 && peRatio < 15) {
+    score += 2; // Undervalued
+  } else if (peRatio >= 15 && peRatio <= 25) {
+    score += 1; // Fairly valued
+  }
+
+  if (pegRatio > 0 && pegRatio < 1) {
+    score += 2; // Growth at reasonable price
+  } else if (pegRatio >= 1 && pegRatio <= 2) {
+    score += 1; // Reasonable PEG
+  }
+
+  // Profitability Metrics
+  if (roe > 15) {
+    score += 2; // High ROE
+  } else if (roe >= 10 && roe <= 15) {
+    score += 1; // Moderate ROE
+  }
+
+  if (roa > 10) {
+    score += 2; // High ROA
+  } else if (roa >= 5 && roa <= 10) {
+    score += 1; // Moderate ROA
+  }
+
+  if (operatingMargin > 20) {
+    score += 2; // High operating margin
+  } else if (operatingMargin >= 10 && operatingMargin <= 20) {
+    score += 1; // Moderate operating margin
+  }
+
+  if (profitMargin > 15) {
+    score += 2; // High profit margin
+  } else if (profitMargin >= 8 && profitMargin <= 15) {
+    score += 1; // Moderate profit margin
+  }
+
+  if (grossMargin > 40) {
+    score += 2; // High gross margin
+  } else if (grossMargin >= 20 && grossMargin <= 40) {
+    score += 1; // Moderate gross margin
+  }
+
+  // Growth Metrics
+  if (earningsGrowth > 15) {
+    score += 2; // Strong earnings growth
+  } else if (earningsGrowth >= 5 && earningsGrowth <= 15) {
+    score += 1; // Moderate earnings growth
+  }
+
+  if (revenueGrowth > 10) {
+    score += 2; // Strong revenue growth
+  } else if (revenueGrowth >= 5 && revenueGrowth <= 10) {
+    score += 1; // Moderate revenue growth
+  }
+
+  // Financial Health Metrics
+  if (debtEquity >= 0 && debtEquity < 0.5) {
+    score += 2; // Low leverage
+  } else if (debtEquity >= 0.5 && debtEquity <= 1) {
+    score += 1; // Moderate leverage
+  }
+
+  if (currentRatio > 1.5) {
+    score += 1; // Good liquidity
+  }
+
+  if (quickRatio > 1) {
+    score += 1; // Good short-term liquidity
+  }
+
+  if (freeCashFlow > 0) {
+    score += 2; // Positive free cash flow
+  }
+
+  // Dividend Metrics
+  if (dividendYield > 2 && payoutRatio > 0 && payoutRatio < 60) {
+    score += 2; // Attractive and sustainable dividend
+  } else if (dividendYield > 0 && payoutRatio > 0) {
+    score += 1; // Pays dividend
+  }
+
+  // Risk Metrics
+  if (beta > 0 && beta < 1) {
+    score += 2; // Low volatility
+  } else if (beta >= 1 && beta <= 1.5) {
+    score += 1; // Moderate volatility
+  }
+
+  // Price Target and Upside Potential
+  if (targetMeanPrice > 0) {
+    priceTarget = targetMeanPrice;
+  } else {
+    priceTarget = calculatePriceTarget(financialData);
+  }
+
+  let upsidePercentage = ((priceTarget - currentPrice) / currentPrice) * 100;
+  let upside = upsidePercentage.toFixed(2) + '%';
+
+  if (upsidePercentage >= 20) {
+    score += 2; // High upside potential
+  } else if (upsidePercentage >= 0 && upsidePercentage < 20) {
+    score += 1; // Some upside potential
+  }
+
+  // Determine Recommendation based on Total Score
+  if (score >= 22) {
     recommendation = "Strong Buy";
-  } else if (pegRatio < 1.5 && roe > 10 && earningsGrowth > 5) {
+  } else if (score >= 16) {
     recommendation = "Buy";
-  } else if (pegRatio < 2 && roe > 5) {
+  } else if (score >= 10) {
     recommendation = "Hold";
   } else {
     recommendation = "Sell";
   }
 
-  // Calculate price target and potential upside
-  //priceTarget = currentPrice * (1 + (earningsGrowth / 100));
-
-  // Improved Price Target Calculation
-  let priceTargetPE = currentPrice * (1 + (earningsGrowth / 100));
-  let priceTargetPEG = currentPrice * (pegRatio < 1 ? 1.5 : 1.2);
-  let priceTargetDCF = calculateDCF(currentPrice, earningsGrowth, roe);
-
-  priceTarget = (priceTargetPE + priceTargetPEG + priceTargetDCF) / 3;
-
-  // Ensure price target is not negative or unreasonably high
-  priceTarget = Math.max(priceTarget, currentPrice * 0.5);
-  priceTarget = Math.min(priceTarget, currentPrice * 2);
-
-  let upside = ((priceTarget - currentPrice) / currentPrice * 100).toFixed(2) + '%';
-
-  // Determine risk level
-  if (beta < 0.8) {
+  // Determine Risk Level
+  if (beta > 0 && beta < 1 && debtEquity >= 0 && debtEquity < 0.5) {
     riskLevel = "Low";
-  } else if (beta < 1.2) {
+  } else if ((beta >= 1 && beta <= 1.5) || (debtEquity >= 0.5 && debtEquity <= 1)) {
     riskLevel = "Moderate";
   } else {
     riskLevel = "High";
   }
+  /*multiline comment
+  // Generate Analysis Summary
+  analysis += `**Valuation Metrics**\n`;
+  analysis += `- P/E Ratio: ${peRatio.toFixed(2)}\n`;
+  analysis += `- Forward P/E: ${forwardPE.toFixed(2)}\n`;
+  analysis += `- PEG Ratio: ${pegRatio.toFixed(2)}\n\n`;
 
-  // Generate analysis text
-  analysis += "Financial Strength: ";
-  if (debtEquity < 50) {
-    analysis += "The company has a strong balance sheet with low debt levels. ";
-  } else {
-    analysis += "The company's debt levels are relatively high, which may impact financial flexibility. ";
+  analysis += `**Profitability Metrics**\n`;
+  analysis += `- Return on Equity (ROE): ${roe.toFixed(2)}%\n`;
+  analysis += `- Return on Assets (ROA): ${roa.toFixed(2)}%\n`;
+  analysis += `- Operating Margin: ${operatingMargin.toFixed(2)}%\n`;
+  analysis += `- Profit Margin: ${profitMargin.toFixed(2)}%\n`;
+  analysis += `- Gross Margin: ${grossMargin.toFixed(2)}%\n\n`;
+
+  analysis += `**Growth Metrics**\n`;
+  analysis += `- Earnings Growth: ${earningsGrowth.toFixed(2)}%\n`;
+  analysis += `- Revenue Growth: ${revenueGrowth.toFixed(2)}%\n\n`;
+
+  analysis += `**Financial Health Metrics**\n`;
+  analysis += `- Debt-to-Equity Ratio: ${debtEquity.toFixed(2)}\n`;
+  analysis += `- Current Ratio: ${currentRatio.toFixed(2)}\n`;
+  analysis += `- Quick Ratio: ${quickRatio.toFixed(2)}\n`;
+  analysis += `- Free Cash Flow: $${freeCashFlow.toFixed(2)}M\n\n`;
+
+  analysis += `**Dividend Metrics**\n`;
+  analysis += `- Dividend Yield: ${dividendYield.toFixed(2)}%\n`;
+  analysis += `- Payout Ratio: ${payoutRatio.toFixed(2)}%\n\n`;
+
+  analysis += `**Risk Metrics**\n`;
+  analysis += `- Beta: ${beta.toFixed(2)}\n\n`;
+
+  analysis += `**Recommendation**\n`;
+  analysis += `Based on the analysis, the stock is rated as a **${recommendation}** with a risk level of **${riskLevel}**. The price target is $${priceTarget.toFixed(2)}, implying an upside potential of ${upside}.\n`;
+*/
+
+  // Generate Concise Summary
+  const strengths = [];
+  const weaknesses = [];
+  
+  // Identify strengths
+  if (roe >= 15) strengths.push("High return on equity");
+  if (operatingMargin >= 20) strengths.push("Strong operating margin");
+  if (earningsGrowth >= 15) strengths.push("Robust earnings growth");
+  if (revenueGrowth >= 10) strengths.push("Solid revenue growth");
+  if (freeCashFlow > 0) strengths.push("Positive free cash flow");
+  if (debtEquity > 0 && debtEquity < 50) strengths.push("Low debt levels");
+  if (dividendYield >= 2 && payoutRatio > 0 && payoutRatio < 60)
+    strengths.push("Attractive and sustainable dividend");
+
+  // Identify weaknesses
+  if (peRatio >= 25) weaknesses.push("High P/E ratio indicating potential overvaluation");
+  if (pegRatio >= 2) weaknesses.push("High PEG ratio suggesting price may not justify growth");
+  if (roe < 10) weaknesses.push("Low return on equity");
+  if (operatingMargin < 10) weaknesses.push("Low operating margin");
+  if (earningsGrowth < 5) weaknesses.push("Weak earnings growth");
+  if (revenueGrowth < 5) weaknesses.push("Weak revenue growth");
+  if (debtEquity >= 100) weaknesses.push("High debt levels");
+  if (dividendYield === 0) weaknesses.push("No dividend payments");
+  
+  // Construct summary paragraphs
+  if (strengths.length > 0) {
+    analysis += `**Strengths:** ${strengths.join(', ')}.\n\n`;
   }
 
-  analysis += "Profitability: ";
-  if (operatingMargin > 20) {
-    analysis += "Impressive operating margins indicate efficient operations. ";
-  } else {
-    analysis += "Operating margins suggest room for improvement in operational efficiency. ";
+  if (weaknesses.length > 0) {
+    analysis += `**Weaknesses:** ${weaknesses.join(', ')}.\n\n`;
   }
 
-  analysis += "Growth Prospects: ";
-  if (revenueGrowth > 10 && earningsGrowth > 10) {
-    analysis += "The company demonstrates strong revenue and earnings growth, indicating positive future prospects. ";
-  } else {
-    analysis += "Growth metrics suggest challenges in maintaining consistent expansion. ";
-  }
-
-  analysis += "Valuation: ";
-  if (peRatio < industryAvgPE) {
-    analysis += "The stock appears undervalued compared to industry peers. ";
-  } else {
-    analysis += "The stock's valuation seems rich relative to its fundamentals. ";
-  }
-
-  analysis += "Dividend: ";
-  if (dividendYield > 2 && dividendPayout < 60) {
-    analysis += "The company offers an attractive and sustainable dividend, appealing to income-focused investors. ";
-  } else if (dividendYield > 0) {
-    analysis += "The dividend payout appears sustainable, but may not be a primary factor for investors. ";
-  }
+  analysis += `Overall, the stock is rated as a **${recommendation}** with a **${riskLevel}** risk level. The price target is $${priceTarget.toFixed(2)}, suggesting an upside potential of ${upside}.`;
 
   return {
     recommendation,
     priceTarget: priceTarget.toFixed(2),
     upside,
     riskLevel,
-    summary: analysis.trim()
+    summary: analysis.trim(),
   };
 }
 
-function calculateDCF(currentPrice: number, growthRate: number, discountRate: number) {
-  const projectionYears = 5;
-  let dcf = 0;
-  for (let i = 1; i <= projectionYears; i++) {
-    dcf += currentPrice * Math.pow(1 + growthRate / 100, i) / Math.pow(1 + discountRate / 100, i);
+
+
+function calculatePriceTarget(financialData: any) {
+  // Parse required data
+  let epsStr = financialData.EPS || '0';
+  let peRatioStr = financialData.PERatio || '0';
+  let forwardPEStr = financialData.ForwardPE || '0';
+  let earningsGrowthStr = financialData.EarningsGrowth || '0';
+  let targetMeanPriceStr = financialData.TargetMeanPrice || '0';
+  let currentPriceStr = financialData.CurrentPrice || '0';
+  let priceToSalesRatioStr = financialData.PriceToSalesRatioTTM || '0';
+  let revenuePerShareStr = financialData.RevenuePerShare || '0';
+
+  // Clean and parse the strings to numbers
+  let eps = parseFloat(epsStr.toString().replace(/[^\d.-]/g, '')) || 0;
+  let peRatio = parseFloat(peRatioStr.toString().replace(/[^\d.-]/g, '')) || 0;
+  let forwardPE = parseFloat(forwardPEStr.toString().replace(/[^\d.-]/g, '')) || 0;
+  let earningsGrowth = parseFloat(earningsGrowthStr.toString().replace(/[^\d.-]/g, '')) || 0;
+  let targetMeanPrice = parseFloat(targetMeanPriceStr.toString().replace(/[^\d.-]/g, '')) || 0;
+  let currentPrice = parseFloat(currentPriceStr.toString().replace(/[^\d.-]/g, '')) || 0;
+  let priceToSalesRatio = parseFloat(priceToSalesRatioStr.toString().replace(/[^\d.-]/g, '')) || 0;
+  let revenuePerShare = parseFloat(revenuePerShareStr.toString().replace(/[^\d.-]/g, '')) || 0;
+
+  // Default P/E multiple if not available
+  let peMultiple = 0;
+  if (forwardPE > 0) {
+    peMultiple = forwardPE;
+  } else if (peRatio > 0) {
+    peMultiple = peRatio;
+  } else {
+    peMultiple = 15; // Default P/E multiple
   }
-  return dcf;
+
+  // Cap earnings growth to prevent unrealistic projections
+  if (earningsGrowth <= -100) {
+    earningsGrowth = -100;
+  }
+
+  // Projected EPS
+  let projectedEPS = eps * (1 + earningsGrowth / 100);
+
+  // If EPS or projected EPS is negative or zero, use alternative valuation methods
+  if (projectedEPS <= 0) {
+    // Try using Price-to-Sales ratio
+    if (revenuePerShare > 0 && priceToSalesRatio > 0) {
+      let priceTarget = revenuePerShare * priceToSalesRatio;
+      return priceTarget;
+    }
+    // Use target mean price from analysts if available
+    if (targetMeanPrice > 0) {
+      return targetMeanPrice;
+    }
+    // Fallback to current price
+    return currentPrice;
+  }
+
+  // Calculate price target using projected EPS and P/E multiple
+  let priceTarget = projectedEPS * peMultiple;
+
+  // Ensure price target is not negative or zero
+  if (priceTarget <= 0) {
+    // Try alternative methods
+    if (targetMeanPrice > 0) {
+      priceTarget = targetMeanPrice;
+    } else {
+      priceTarget = currentPrice;
+    }
+  }
+
+  return priceTarget;
 }
+
 
